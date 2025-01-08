@@ -36,6 +36,14 @@
             "_register.php"
         ]
     },
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Instana\\Test\\Util\\": "./test/util"
+        }
+    },
     "extra": {
         "branch-alias": {
             "dev-main": "1.0.x-dev"
