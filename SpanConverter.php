@@ -116,11 +116,14 @@ class SpanConverter implements SpanConverterInterface
         }
 
         if (array_key_exists('http', $instanaSpan['data'])) {
-            if (array_key_exists('request.header', $instanaSpan['data']['http'])) {
-                unset($instanaSpan['data']['http']['request.header']);
-            }
-            if (array_key_exists('response.header', $instanaSpan['data']['http'])) {
-                unset($instanaSpan['data']['http']['response.header']);
+            $keys = array_filter($instanaSpan['data']['http'], function ($k) {
+                return str_contains($k, 'request.header');
+            }, ARRAY_FILTER_USE_KEY);
+            $keys += array_filter($instanaSpan['data']['http'], function ($k) {
+                return str_contains($k, 'response.header');
+            }, ARRAY_FILTER_USE_KEY);
+            foreach ($keys as $k => $v) {
+                unset($instanaSpan['data']['http'][$k]);
             }
         }
 

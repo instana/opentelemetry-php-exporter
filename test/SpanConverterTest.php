@@ -281,9 +281,11 @@ class SpanConverterTest extends TestCase
             ->setName('converter.http')
             ->setKind(OtelSpanKind::KIND_CLIENT)
             ->addAttribute('http.request.method', 'GET')
-            ->addAttribute('http.request.header', array('secrets' => 'foo'))
+            ->addAttribute('http.request.header', array('secret' => 'foo'))
+            ->addAttribute('http.request.header.secrets', array('foo', 'bar'))
             ->addAttribute('http.response.status_code', 200)
-            ->addAttribute('http.response.header', array('secrets' => 'bar'));
+            ->addAttribute('http.response.header', array('secret' => 'fizz'))
+            ->addAttribute('http.response.header.secrets', array('fizz', 'buzz'));
 
         $instanaSpan = $this->converter->convert([$span])[0];
 
