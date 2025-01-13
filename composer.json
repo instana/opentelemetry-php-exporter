@@ -1,0 +1,52 @@
+{
+    "name": "instana/opentelemetry-php-exporter",
+    "description": "Instana exporter for OpenTelemetry PHP.",
+    "keywords": [
+        "opentelemetry",
+        "otel",
+        "tracing",
+        "contrib",
+        "exporter",
+        "instana"
+    ],
+    "type": "library",
+    "support": {
+        "issues": "https://github.com/instana/opentelemetry-php-exporter/issues",
+        "source": "https://github.com/instana/opentelemetry-php-exporter",
+        "docs": "https://www.ibm.com/docs/en/instana-observability/current?topic=opentelemetry-php-exporter"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Instana contributors",
+            "homepage": "https://github.com/instana/opentelemetry-php-exporter/graphs/contributors"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "open-telemetry/api": "^1.0",
+        "open-telemetry/sdk": "^1.0",
+        "guzzlehttp/guzzle": "^7.4.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Instana\\": "."
+        },
+        "files": [
+            "_register.php"
+        ]
+    },
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Instana\\Test\\Util\\": "./test/util"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}
