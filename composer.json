@@ -15,7 +15,7 @@
         "source": "https://github.com/instana/opentelemetry-php-exporter",
         "docs": "https://www.ibm.com/docs/en/instana-observability/current?topic=opentelemetry-php-exporter"
     },
-    "license": "MIT",
+    "license": "Apache-2.0",
     "authors": [
         {
             "name": "Instana contributors",
