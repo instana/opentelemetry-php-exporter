@@ -7,7 +7,6 @@ namespace Instana;
 use OpenTelemetry\API\Common\Time\ClockInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
-use OpenTelemetry\SDK\Common\Attribute\AttributesInterface;
 use OpenTelemetry\SDK\Trace\EventInterface;
 use OpenTelemetry\SDK\Trace\SpanConverterInterface;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
@@ -15,6 +14,8 @@ use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use Instana\SpanKind as InstanaSpanKind;
 
 use Exception;
+use OpenTelemetry\SemConv\ResourceAttributes;
+
 use function max;
 
 class SpanConverter implements SpanConverterInterface
@@ -52,17 +53,18 @@ class SpanConverter implements SpanConverterInterface
         }
 
         $instanaSpan = [
-            'f' => array('e' => $this->agentPid, 'h' => $this->agentUuid),
-            's' => $span->getSpanId(),
+            'n' => 'php',
             't' => $span->getTraceId(),
+            's' => $span->getSpanId(),
             'ts' => $startTimestamp,
             'd' => max(0, $endTimestamp - $startTimestamp),
-            'n' => $span->getName(),
+            'f' => array('e' => $this->agentPid, 'h' => $this->agentUuid),
             'data' => []
         ];
 
         if ($span->getParentContext()->isValid()) {
             $instanaSpan['p'] = $span->getParentSpanId();
+            $instanaSpan['n'] = 'sdk';
         }
 
         $convertedKind = SpanConverter::toSpanKind($span);
@@ -70,33 +72,54 @@ class SpanConverter implements SpanConverterInterface
             $instanaSpan['k'] = $convertedKind;
         }
 
-        self::insertSpanData($instanaSpan['data'], $span->getAttributes());
-        self::insertSpanData($instanaSpan['data'], $span->getResource()->getAttributes());
-        if (array_key_exists('service', $instanaSpan['data'])) {
-            self::setOrAppend('otel', $instanaSpan['data'], array('service' => $instanaSpan['data']['service']));
+        $instanaSpan['data']['service'] = $_SERVER['INSTANA_SERVICE_NAME'] ?? $span->getName();
+        $instanaSpan['data']['ext']['version'] = $span->getResource()->getAttributes()->get(ResourceAttributes::TELEMETRY_SDK_VERSION);
+        $instanaSpan['data']['php']['script'] = $span->getResource()->getAttributes()->get(ResourceAttributes::PROCESS_COMMAND);
+        $instanaSpan['data']['php']['sapi'] = $span->getResource()->getAttributes()->get(ResourceAttributes::PROCESS_RUNTIME_NAME);
+        $instanaSpan['data']['php']['version'] = $span->getResource()->getAttributes()->get(ResourceAttributes::PROCESS_RUNTIME_VERSION);
+
+        foreach (
+            array(
+                ResourceAttributes::HOST_NAME,
+                ResourceAttributes::HOST_ARCH,
+                ResourceAttributes::HOST_ID,
+                ResourceAttributes::OS_TYPE,
+                ResourceAttributes::OS_DESCRIPTION,
+                ResourceAttributes::OS_NAME,
+                ResourceAttributes::OS_VERSION,
+                ResourceAttributes::PROCESS_COMMAND_ARGS,
+                ResourceAttributes::PROCESS_OWNER
+            ) as $attrb
+        ) {
+            $instanaSpan['data']['sdk']['custom']['tags'][$attrb] = $span->getResource()->getAttributes()->get($attrb);
         }
-        $instanaSpan['data']['service'] = $span->getName();
 
-        self::insertSpanData($instanaSpan['data'], $span->getInstrumentationScope()->getAttributes());
-
-        if ($span->getStatus()->getCode() !== StatusCode::STATUS_UNSET) {
-            self::setOrAppend('otel', $instanaSpan['data'], array(self::OTEL_KEY_STATUS_CODE => $span->getStatus()->getCode()));
-        }
-
-        if ($span->getStatus()->getCode() === StatusCode::STATUS_ERROR) {
-            self::setOrAppend('otel', $instanaSpan['data'], array(self::OTEL_KEY_STATUS_DESCRIPTION => $span->getStatus()->getDescription()));
-        }
-
-        if (!empty($span->getInstrumentationScope()->getName())) {
-            self::setOrAppend('otel', $instanaSpan['data'], array(self::OTEL_KEY_INSTRUMENTATION_SCOPE_NAME => $span->getInstrumentationScope()->getName()));
-        }
-
-        if ($span->getInstrumentationScope()->getVersion() !== null) {
-            self::setOrAppend('otel', $instanaSpan['data'], array(self::OTEL_KEY_INSTRUMENTATION_SCOPE_VERSION => $span->getInstrumentationScope()->getVersion()));
+        foreach ($span->getAttributes() as $key => $attrb) {
+            self::setOrAppend('attributes', $instanaSpan['data']['sdk']['custom']['tags'], array($key => $attrb));
         }
 
         foreach ($span->getEvents() as $event) {
-            self::setOrAppend('events', $instanaSpan['data'], array($event->getName() => self::convertEvent($event)));
+            self::setOrAppend('events', $instanaSpan['data']['sdk']['custom']['tags'], array($event->getName() => self::convertEvent($event)));
+        }
+
+        foreach ($span->getInstrumentationScope()->getAttributes() as $key => $value) {
+            self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array($key => $value));
+        }
+
+        if (!empty($span->getInstrumentationScope()->getName())) {
+            self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_INSTRUMENTATION_SCOPE_NAME => $span->getInstrumentationScope()->getName()));
+        }
+
+        if (!is_null($span->getInstrumentationScope()->getVersion())) {
+            self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_INSTRUMENTATION_SCOPE_VERSION => $span->getInstrumentationScope()->getVersion()));
+        }
+
+        if ($span->getStatus()->getCode() !== StatusCode::STATUS_UNSET) {
+            self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_STATUS_CODE => $span->getStatus()->getCode()));
+        }
+
+        if ($span->getStatus()->getCode() === StatusCode::STATUS_ERROR) {
+            self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_STATUS_DESCRIPTION => $span->getStatus()->getDescription()));
         }
 
         $droppedAttributes = $span->getAttributes()->getDroppedAttributesCount()
@@ -104,32 +127,29 @@ class SpanConverter implements SpanConverterInterface
             + $span->getResource()->getAttributes()->getDroppedAttributesCount();
 
         if ($droppedAttributes > 0) {
-            self::setOrAppend('otel', $instanaSpan['data'], array(self::OTEL_KEY_DROPPED_ATTRIBUTES_COUNT => $droppedAttributes));
+            self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_DROPPED_ATTRIBUTES_COUNT => $droppedAttributes));
         }
 
         if ($span->getTotalDroppedEvents() > 0) {
-            self::setOrAppend('otel', $instanaSpan['data'], array(self::OTEL_KEY_DROPPED_EVENTS_COUNT => $span->getTotalDroppedEvents()));
+            self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_DROPPED_EVENTS_COUNT => $span->getTotalDroppedEvents()));
         }
 
         if ($span->getTotalDroppedLinks() > 0) {
-            self::setOrAppend('otel', $instanaSpan['data'], array(self::OTEL_KEY_DROPPED_LINKS_COUNT => $span->getTotalDroppedLinks()));
+            self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_DROPPED_LINKS_COUNT => $span->getTotalDroppedLinks()));
         }
 
-        if (array_key_exists('http', $instanaSpan['data'])) {
-            $keys = array_filter($instanaSpan['data']['http'], function ($k) {
-                return str_contains($k, 'request.header');
+        if (array_key_exists('attributes', $instanaSpan['data']['sdk']['custom']['tags'])) {
+            $keys = array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k) {
+                return str_contains($k, 'http.request.header');
             }, ARRAY_FILTER_USE_KEY);
-            $keys += array_filter($instanaSpan['data']['http'], function ($k) {
-                return str_contains($k, 'response.header');
+            $keys += array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k) {
+                return str_contains($k, 'http.response.header');
             }, ARRAY_FILTER_USE_KEY);
             foreach ($keys as $k => $v) {
-                unset($instanaSpan['data']['http'][$k]);
+                unset($instanaSpan['data']['sdk']['custom']['tags']['attributes'][$k]);
             }
         }
-
-        if (empty($instanaSpan['data'])) {
-            unset($instanaSpan['data']);
-        }
+        self::unsetEmpty($instanaSpan['data']);
 
         return $instanaSpan;
     }
@@ -151,24 +171,29 @@ class SpanConverter implements SpanConverterInterface
         return intdiv($nanoseconds, ClockInterface::NANOS_PER_MILLISECOND);
     }
 
-    private static function insertSpanData(array &$data, AttributesInterface $attributes): void
+    private static function setOrAppend(string $key, array &$arr, mixed $value): void
     {
-        foreach ($attributes as $key => $value) {
-            $arr = explode('.', $key, 2);
-            if (count($arr) < 2) {
-                $data += array($arr[0] => $value);
-            } else {
-                self::setOrAppend($arr[0], $data, array($arr[1] => $value));
+        if (array_key_exists($key, $arr)) {
+            if (!is_array($arr[$key])) {
+                $arr[$key] = array($arr[$key]);
             }
+            $arr[$key] += is_array($value) ? $value : array($value);
+        } else {
+            $arr[$key] = $value;
         }
     }
 
-    private static function setOrAppend(string $key, array &$arr, array $value): void
+    private static function unsetEmpty(array &$arr): void
     {
-        if (array_key_exists($key, $arr)) {
-            $arr[$key] += $value;
-        } else {
-            $arr[$key] = $value;
+        foreach ($arr as $key => $value) {
+            if (is_array($value)) {
+                self::unsetEmpty($arr[$key]);
+                if (empty($arr[$key])) {
+                    unset($arr[$key]);
+                }
+            } elseif (is_null($value)) {
+                unset($arr[$key]);
+            }
         }
     }
 
