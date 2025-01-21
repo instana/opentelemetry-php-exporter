@@ -89,8 +89,9 @@ class SpanConverterTest extends TestCase
         $this->assertSame(2, $instanaSpan['k']);
 
         $this->assertCount(3, $instanaSpan['data']);
-        $this->assertSame($span->getName(), $instanaSpan['data']['service']);
+        $this->assertSame('instana/opentelemetry-php-exporter', $instanaSpan['data']['service']);
         $this->assertSame('dev', $instanaSpan['data']['ext']['version']);
+        $this->assertSame($span->getName(), $instanaSpan['data']['sdk']['name']);
 
         $tags = $instanaSpan['data']['sdk']['custom']['tags'];
         $this->assertCount(3, $tags);
@@ -135,8 +136,8 @@ class SpanConverterTest extends TestCase
 
         $this->assertArrayNotHasKey('p', $instanaSpan);
         $this->assertSame('php', $instanaSpan['n']);
-        $this->assertArrayNotHasKey('sdk', $instanaSpan['data']);
-        $this->assertCount(1, $instanaSpan['data']);
+        $this->assertSame('test-span-data', $instanaSpan['data']['sdk']['name']);
+        $this->assertCount(2, $instanaSpan['data']);
     }
 
     #[DataProvider('spanKindProvider')]

@@ -7,6 +7,7 @@ namespace Instana;
 use OpenTelemetry\API\Common\Time\ClockInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
+use OpenTelemetry\SDK\Resource\ResourceInfoFactory;
 use OpenTelemetry\SDK\Trace\EventInterface;
 use OpenTelemetry\SDK\Trace\SpanConverterInterface;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
@@ -28,10 +29,14 @@ class SpanConverter implements SpanConverterInterface
     const OTEL_KEY_DROPPED_EVENTS_COUNT = 'dropped_events_count';
     const OTEL_KEY_DROPPED_LINKS_COUNT = 'dropped_links_count';
 
+    private readonly string $defaultServiceName;
+
     public function __construct(
         private ?string $agentUuid = null,
         private ?string $agentPid = null
-    ) {}
+    ) {
+        $this->defaultServiceName = ResourceInfoFactory::defaultResource()->getAttributes()->get(ResourceAttributes::SERVICE_NAME);
+    }
 
     public function convert(iterable $spans): array
     {
@@ -72,11 +77,14 @@ class SpanConverter implements SpanConverterInterface
             $instanaSpan['k'] = $convertedKind;
         }
 
-        $instanaSpan['data']['service'] = $_SERVER['INSTANA_SERVICE_NAME'] ?? $span->getName();
+        $serviceName = $span->getResource()->getAttributes()->get(ResourceAttributes::SERVICE_NAME) ?? $this->defaultServiceName;
+        $instanaSpan['data']['service'] = $_SERVER['INSTANA_SERVICE_NAME'] ?? $serviceName;
+
         $instanaSpan['data']['ext']['version'] = $span->getResource()->getAttributes()->get(ResourceAttributes::TELEMETRY_SDK_VERSION);
         $instanaSpan['data']['php']['script'] = $span->getResource()->getAttributes()->get(ResourceAttributes::PROCESS_COMMAND);
         $instanaSpan['data']['php']['sapi'] = $span->getResource()->getAttributes()->get(ResourceAttributes::PROCESS_RUNTIME_NAME);
         $instanaSpan['data']['php']['version'] = $span->getResource()->getAttributes()->get(ResourceAttributes::PROCESS_RUNTIME_VERSION);
+        $instanaSpan['data']['sdk']['name'] = $span->getName() ?: 'sdk';
 
         foreach (
             array(
