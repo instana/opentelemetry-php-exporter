@@ -80,26 +80,13 @@ class SpanConverter implements SpanConverterInterface
         $serviceName = $span->getResource()->getAttributes()->get(ResourceAttributes::SERVICE_NAME) ?? $this->defaultServiceName;
         $instanaSpan['data']['service'] = $_SERVER['INSTANA_SERVICE_NAME'] ?? $serviceName;
 
-        $instanaSpan['data']['ext']['version'] = $span->getResource()->getAttributes()->get(ResourceAttributes::TELEMETRY_SDK_VERSION);
-        $instanaSpan['data']['php']['script'] = $span->getResource()->getAttributes()->get(ResourceAttributes::PROCESS_COMMAND);
-        $instanaSpan['data']['php']['sapi'] = $span->getResource()->getAttributes()->get(ResourceAttributes::PROCESS_RUNTIME_NAME);
-        $instanaSpan['data']['php']['version'] = $span->getResource()->getAttributes()->get(ResourceAttributes::PROCESS_RUNTIME_VERSION);
         $instanaSpan['data']['sdk']['name'] = $span->getName() ?: 'sdk';
-
-        foreach (
-            array(
-                ResourceAttributes::HOST_NAME,
-                ResourceAttributes::HOST_ARCH,
-                ResourceAttributes::HOST_ID,
-                ResourceAttributes::OS_TYPE,
-                ResourceAttributes::OS_DESCRIPTION,
-                ResourceAttributes::OS_NAME,
-                ResourceAttributes::OS_VERSION,
-                ResourceAttributes::PROCESS_COMMAND_ARGS,
-                ResourceAttributes::PROCESS_OWNER
-            ) as $attrb
-        ) {
-            $instanaSpan['data']['sdk']['custom']['tags'][$attrb] = $span->getResource()->getAttributes()->get($attrb);
+        $instanaSpan['data']['sdk']['custom']['tags'] = [];
+        foreach ($span->getResource()->getAttributes() as $key => $attrb) {
+            if (str_contains($key, 'service.')) {
+                continue;
+            }
+            $instanaSpan['data']['sdk']['custom']['tags'][$key] = $attrb;
         }
 
         foreach ($span->getAttributes() as $key => $attrb) {

@@ -88,13 +88,16 @@ class SpanConverterTest extends TestCase
         $this->assertSame('1000000000000000', $instanaSpan['p']);
         $this->assertSame(2, $instanaSpan['k']);
 
-        $this->assertCount(3, $instanaSpan['data']);
+        $this->assertCount(2, $instanaSpan['data']);
         $this->assertSame('instana/opentelemetry-php-exporter', $instanaSpan['data']['service']);
-        $this->assertSame('dev', $instanaSpan['data']['ext']['version']);
         $this->assertSame($span->getName(), $instanaSpan['data']['sdk']['name']);
 
         $tags = $instanaSpan['data']['sdk']['custom']['tags'];
-        $this->assertCount(3, $tags);
+        $this->assertCount(7, $tags);
+        $this->assertSame('opentelemetry', $tags['telemetry.sdk.name']);
+        $this->assertSame('php', $tags['telemetry.sdk.language']);
+        $this->assertSame('dev', $tags['telemetry.sdk.version']);
+        $this->assertSame('test-a', $tags['instance']);
 
         $this->assertCount(3, $tags['attributes']);
         $this->assertSame('unknown_service:php', $tags['attributes']['service']['name']);
@@ -136,6 +139,7 @@ class SpanConverterTest extends TestCase
 
         $this->assertArrayNotHasKey('p', $instanaSpan);
         $this->assertSame('php', $instanaSpan['n']);
+        $this->assertSame('instana/opentelemetry-php-exporter', $instanaSpan['data']['service']);
         $this->assertSame('test-span-data', $instanaSpan['data']['sdk']['name']);
         $this->assertCount(2, $instanaSpan['data']);
     }
