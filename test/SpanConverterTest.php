@@ -78,38 +78,40 @@ class SpanConverterTest extends TestCase
             ->setHasEnded(true);
 
         $instanaSpan = $this->converter->convert([$span])[0];
-
-        $this->assertSame($span->getContext()->getSpanId(), $instanaSpan['s']);
+        $this->assertSame('sdk', $instanaSpan['n']);
         $this->assertSame($span->getContext()->getTraceId(), $instanaSpan['t']);
-        $this->assertSame('1000000000000000', $instanaSpan['p']);
-
-        $this->assertSame('unknown_service:php', $instanaSpan['data']['otel']['service']['name']);
-        $this->assertSame($span->getName(), $instanaSpan['n']);
-
+        $this->assertSame($span->getContext()->getSpanId(), $instanaSpan['s']);
         $this->assertSame(1505855794194, $instanaSpan['ts']);
         $this->assertSame(5271, $instanaSpan['d']);
-
-        $this->assertCount(7, $instanaSpan['data']);
-
-        $this->assertSame('Error', $instanaSpan['data']['otel']['status_code']);
-        $this->assertSame('status_description', $instanaSpan['data']['otel']['error']);
-        $this->assertSame('authorizationservice.com', $instanaSpan['data']['net']['peer.name']);
-        $this->assertSame('AuthService', $instanaSpan['data']['peer']['service']);
-        $this->assertSame('opentelemetry', $instanaSpan['data']['telemetry']['sdk.name']);
-        $this->assertSame('php', $instanaSpan['data']['telemetry']['sdk.language']);
-        $this->assertSame('dev', $instanaSpan['data']['telemetry']['sdk.version']);
-        $this->assertSame('test-a', $instanaSpan['data']['instance']);
-        $this->assertSame('unknown_service:php', $instanaSpan['data']['otel']['service']['name']);
-        $this->assertSame('dev-main', $instanaSpan['data']['otel']['service']['version']);
-
-        $this->assertSame('instrumentation_scope_name', $instanaSpan['data']['otel']['scope.name']);
-        $this->assertSame('instrumentation_scope_version', $instanaSpan['data']['otel']['scope.version']);
-        $this->assertSame('converter.test', $instanaSpan['data']['service']);
-
         $this->assertSame('12345', $instanaSpan['f']['e']);
         $this->assertSame('0123456abcdef', $instanaSpan['f']['h']);
-
+        $this->assertSame('1000000000000000', $instanaSpan['p']);
         $this->assertSame(2, $instanaSpan['k']);
+
+        $this->assertCount(2, $instanaSpan['data']);
+        $this->assertSame('instana/opentelemetry-php-exporter', $instanaSpan['data']['service']);
+        $this->assertSame($span->getName(), $instanaSpan['data']['sdk']['name']);
+
+        $tags = $instanaSpan['data']['sdk']['custom']['tags'];
+        $this->assertCount(7, $tags);
+        $this->assertSame('opentelemetry', $tags['telemetry.sdk.name']);
+        $this->assertSame('php', $tags['telemetry.sdk.language']);
+        $this->assertSame('dev', $tags['telemetry.sdk.version']);
+        $this->assertSame('test-a', $tags['instance']);
+
+        $this->assertCount(3, $tags['attributes']);
+        $this->assertSame('unknown_service:php', $tags['attributes']['service']['name']);
+        $this->assertSame('dev-main', $tags['attributes']['service']['version']);
+        $this->assertSame('authorizationservice.com', $tags['attributes']['net.peer.name']);
+        $this->assertSame('AuthService', $tags['attributes']['peer.service']);
+
+        $this->assertSame('{"value":{"job":"stage.updateTime"},"timestamp":1505855799433}', $tags['events']['validators.list']);
+
+        $this->assertCount(4, $tags['otel']);
+        $this->assertSame('instrumentation_scope_name', $tags['otel']['scope.name']);
+        $this->assertSame('instrumentation_scope_version', $tags['otel']['scope.version']);
+        $this->assertSame('Error', $tags['otel']['status_code']);
+        $this->assertSame('status_description', $tags['otel']['error']);
     }
 
     #[DataProvider('spanConverterProvider')]
@@ -133,12 +135,13 @@ class SpanConverterTest extends TestCase
     public function test_should_omit_empty_keys_from_instana_span(): void
     {
         $span = (new SpanData());
-
         $instanaSpan = $this->converter->convert([$span])[0];
 
         $this->assertArrayNotHasKey('p', $instanaSpan);
-        $this->assertArrayNotHasKey('otel', $instanaSpan['data']);
-        $this->assertCount(1, $instanaSpan['data']);
+        $this->assertSame('php', $instanaSpan['n']);
+        $this->assertSame('instana/opentelemetry-php-exporter', $instanaSpan['data']['service']);
+        $this->assertSame('test-span-data', $instanaSpan['data']['sdk']['name']);
+        $this->assertCount(2, $instanaSpan['data']);
     }
 
     #[DataProvider('spanKindProvider')]
@@ -149,7 +152,11 @@ class SpanConverterTest extends TestCase
 
         $instanaSpan = $this->converter->convert([$span])[0];
 
-        $this->assertSame($expectedSpanKind, $instanaSpan['k']);
+        if ($internalSpanKind < 5) {
+            $this->assertSame($expectedSpanKind, $instanaSpan['k']);
+        } else {
+            $this->assertArrayNotHasKey('k', $instanaSpan);
+        }
     }
 
     public static function spanKindProvider(): array
@@ -171,7 +178,7 @@ class SpanConverterTest extends TestCase
 
         $instanaSpan = $this->converter->convert([$span])[0];
 
-        $this->assertSame('{}', $instanaSpan['data']['events']['event.name']);
+        $this->assertSame('{}', $instanaSpan['data']['sdk']['custom']['tags']['events']['event.name']);
     }
 
     /**
@@ -194,10 +201,10 @@ class SpanConverterTest extends TestCase
             ->addAttribute('list-of-numbers', $listOfNumbers)
             ->addAttribute('list-of-booleans', $listOfBooleans);
 
-        $data = $this->converter->convert([$span])[0]['data'];
+        $data = $this->converter->convert([$span])[0]['data']['sdk']['custom']['tags']['attributes'];
 
         // Check that we captured all attributes in data.
-        $this->assertCount(10, $data);
+        $this->assertCount(9, $data);
 
         $this->assertSame('string', $data['string']);
         $this->assertSame(1024, $data['integer-1']);
@@ -228,7 +235,7 @@ class SpanConverterTest extends TestCase
         $spanData->method('getTotalDroppedLinks')->willReturn($dropped);
 
         $converted = $this->converter->convert([$spanData])[0];
-        $data = $converted['data']['otel'];
+        $data = $converted['data']['sdk']['custom']['tags']['otel'];
 
         if ($expected) {
             $this->assertArrayHasKey(SpanConverter::OTEL_KEY_DROPPED_EVENTS_COUNT, $data);
@@ -269,7 +276,7 @@ class SpanConverterTest extends TestCase
             ->addEvent('event.one', $eventAttributes);
         $instanaSpan = $this->converter->convert([$span])[0];
 
-        $events = $instanaSpan['data']['events'];
+        $events = $instanaSpan['data']['sdk']['custom']['tags']['events'];
 
         $this->assertTrue(array_key_exists('event.one', $events));
         $this->assertIsString($events['event.one']);
@@ -287,13 +294,12 @@ class SpanConverterTest extends TestCase
             ->addAttribute('http.response.header', array('secret' => 'fizz'))
             ->addAttribute('http.response.header.secrets', array('fizz', 'buzz'));
 
-        $instanaSpan = $this->converter->convert([$span])[0];
+        $data = $this->converter->convert([$span])[0]['data']['sdk']['custom']['tags'];
 
-        $this->assertArrayHasKey('http', $instanaSpan['data']);
-        $this->assertArrayHasKey('request.method', $instanaSpan['data']['http']);
-        $this->assertArrayHasKey('response.status_code', $instanaSpan['data']['http']);
+        $this->assertArrayHasKey('http.request.method', $data['attributes']);
+        $this->assertArrayHasKey('http.response.status_code', $data['attributes']);
 
-        $this->assertArrayNotHasKey('request.header', $instanaSpan['data']['http']);
-        $this->assertArrayNotHasKey('response.header', $instanaSpan['data']['http']);
+        $this->assertArrayNotHasKey('http.request.header', $data['attributes']);
+        $this->assertArrayNotHasKey('http.response.header', $data['attributes']);
     }
 }

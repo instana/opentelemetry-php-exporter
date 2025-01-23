@@ -31,6 +31,12 @@ INSTANA_AGENT_HOST=127.0.0.1
 INSTANA_AGENT_PORT=42699
 ```
 
+The service name that is visible in the Instana UI can be configured with the following environment variables. OpenTelemetry provides `OTEL_SERVICE_NAME` (see documentation [here](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_service_name)) as a way to customize this within the SDK. We also provide `INSTANA_SERVICE_NAME` which will be taken as the highest precedence.
+
+```bash
+INSTANA_SERVICE_NAME=custom-service-name
+```
+
 ## Example
 
 ```php
