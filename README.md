@@ -24,7 +24,7 @@ composer require instana/opentelemetry-php-exporter
 
 Utilizing the OpenTelemetry PHP SDK, we can send spans natively to Instana, by providing an OpenTelemetry span processor our `SpanExporterInterface`.
 
-This can be manually constructed, or created from the `SpanExporterFactory`. See the factory implementation for how to manually construct the `SpanExporter`. The factory reads from two environment varibles which can be set according, else will fallback onto the following defaults
+This can be manually constructed, or created from the `SpanExporterFactory`. See the factory implementation for how to manually construct the `SpanExporter`. The factory reads from two environment variables which can be set according, else will fallback onto the following defaults
 
 ```bash
 INSTANA_AGENT_HOST=127.0.0.1
@@ -45,7 +45,7 @@ use OpenTelemetry\SDK\Trace\TracerProvider;
 
 $tracerProvider = new TracerProvider(
     new SimpleSpanProcessor(
-        (new \Instana\SpanExporterFactory)->create()
+        Registry::spanExporterFactory("instana")->create()
     )
 );
 $tracer = $tracerProvider->getTracer('io.instana.opentelemetry.php');
