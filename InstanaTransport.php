@@ -72,7 +72,7 @@ class InstanaTransport implements TransportInterface
         $response = $this->sendPayload($payload);
 
         $code = $response->getStatusCode();
-        if ($code != 204 && $code != 307) {
+        if ($code < 200 || $code >= 300) {
             self::logDebug("Sending failed with code " . $code);
             return new ErrorFuture(new RuntimeException('Payload failed to send with code ' . $code));
         }
