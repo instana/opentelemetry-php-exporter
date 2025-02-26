@@ -24,7 +24,9 @@ class SpanExporterFactory implements SpanExporterFactoryInterface
 
         $uuid = $transport->getUuid();
         $pid = $transport->getPid();
-        $converter = new SpanConverter($uuid, $pid);
+        $secrets = $transport->getSecrets();
+        $extraHeaders = $transport->getExtraHeaders();
+        $converter = new SpanConverter($uuid, $pid, $secrets, $extraHeaders);
 
         return new SpanExporter($transport, $converter);
     }

@@ -33,9 +33,20 @@ class SpanConverter implements SpanConverterInterface
 
     public function __construct(
         private ?string $agentUuid = null,
-        private ?string $agentPid = null
+        private ?string $agentPid = null,
+        private array $secrets = [],
+        private array $extraHeaders = []
     ) {
         $this->defaultServiceName = ResourceInfoFactory::defaultResource()->getAttributes()->get(ResourceAttributes::SERVICE_NAME);
+
+        if (empty($secrets)) {
+            $this->secrets = [
+                "matcher" => "contains-ignore-case",
+                "list" => ["key", "password", "secret"]
+            ];
+        }
+
+        array_walk($this->extraHeaders, fn(string &$header, $_) => $header = strtolower($header));
     }
 
     public function convert(iterable $spans): array
@@ -135,10 +146,9 @@ class SpanConverter implements SpanConverterInterface
 
         if (array_key_exists('attributes', $instanaSpan['data']['sdk']['custom']['tags'])) {
             $keys = array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k) {
-                return str_contains($k, 'http.request.header');
-            }, ARRAY_FILTER_USE_KEY);
-            $keys += array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k) {
-                return str_contains($k, 'http.response.header');
+                $matches = [];
+                return preg_match('/http\.(request|response)\.header\.(.+)/', $k, $matches) &&
+                    !in_array($matches[2], $this->extraHeaders);
             }, ARRAY_FILTER_USE_KEY);
             foreach ($keys as $k => $v) {
                 unset($instanaSpan['data']['sdk']['custom']['tags']['attributes'][$k]);

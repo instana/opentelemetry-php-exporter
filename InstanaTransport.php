@@ -214,4 +214,14 @@ class InstanaTransport implements TransportInterface
     {
         return $this->agent_uuid;
     }
+
+    public function getSecrets(): array
+    {
+        return $this->secrets;
+    }
+
+    public function getExtraHeaders(): array
+    {
+        return $this->tracing["extra-http-headers"] ?? [];
+    }
 }
