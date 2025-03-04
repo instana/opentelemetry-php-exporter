@@ -134,9 +134,6 @@ class SpanConverter implements SpanConverterInterface
         }
 
         self::unsetEmpty($instanaSpan['data']);
-        if (empty($instanaSpan['data'])) {
-            unset($instanaSpan['data']);
-        }
 
         return $instanaSpan;
     }
