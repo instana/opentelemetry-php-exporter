@@ -133,17 +133,6 @@ class SpanConverter implements SpanConverterInterface
             self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_DROPPED_LINKS_COUNT => $span->getTotalDroppedLinks()));
         }
 
-        if (array_key_exists('attributes', $instanaSpan['data']['sdk']['custom']['tags'])) {
-            $keys = array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k) {
-                return str_contains($k, 'http.request.header');
-            }, ARRAY_FILTER_USE_KEY);
-            $keys += array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k) {
-                return str_contains($k, 'http.response.header');
-            }, ARRAY_FILTER_USE_KEY);
-            foreach ($keys as $k => $v) {
-                unset($instanaSpan['data']['sdk']['custom']['tags']['attributes'][$k]);
-            }
-        }
         self::unsetEmpty($instanaSpan['data']);
 
         return $instanaSpan;
