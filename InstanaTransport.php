@@ -48,14 +48,7 @@ class InstanaTransport implements TransportInterface
 
         $this->client = new Client(['base_uri' => $endpoint]);
 
-        for ($attempt = 0; $attempt < self::ATTEMPTS && !$this->announce(); $attempt++) {
-            self::logDebug("Discovery request failed, attempt " . $attempt);
-            sleep(5);
-        }
-
-        if (is_null($this->agent_uuid) || is_null($this->pid)) {
-            throw new Exception('Failed announcement in transport');
-        }
+        $this->announce();
     }
 
     public function contentType(): string
@@ -74,7 +67,11 @@ class InstanaTransport implements TransportInterface
         $code = $response->getStatusCode();
         if ($code < 200 || $code >= 300) {
             self::logDebug("Sending failed with code " . $code);
-            return new ErrorFuture(new RuntimeException('Payload failed to send with code ' . $code));
+            try {
+                $this->announce();
+            } catch (Exception $e) {
+                return new ErrorFuture($e);
+            }
         }
 
         return new CompletedFuture('Payload successfully sent');
@@ -106,7 +103,19 @@ class InstanaTransport implements TransportInterface
         return !$this->closed;
     }
 
-    private function announce(): bool
+    private function announce()
+    {
+        for ($attempt = 0; $attempt < self::ATTEMPTS && !$this->performAnnounce(); $attempt++) {
+            self::logDebug("Discovery request failed, attempt " . $attempt);
+            sleep(5);
+        }
+
+        if (is_null($this->agent_uuid) || is_null($this->pid)) {
+            throw new Exception('Failed announcement in transport');
+        }
+    }
+
+    private function performAnnounce(): bool
     {
         self::logDebug("Announcing to " . $this->endpoint);
 
