@@ -282,7 +282,7 @@ class SpanConverterTest extends TestCase
         $this->assertIsString($events['event.one']);
     }
 
-    public function test_http_header_attributes_are_dropped(): void
+    public function test_http_header_attributes(): void
     {
         $span = (new SpanData())
             ->setName('converter.http')
@@ -299,7 +299,7 @@ class SpanConverterTest extends TestCase
         $this->assertArrayHasKey('http.request.method', $data['attributes']);
         $this->assertArrayHasKey('http.response.status_code', $data['attributes']);
 
-        $this->assertArrayNotHasKey('http.request.header', $data['attributes']);
-        $this->assertArrayNotHasKey('http.response.header', $data['attributes']);
+        $this->assertArrayHasKey('http.request.header', $data['attributes']);
+        $this->assertArrayHasKey('http.response.header', $data['attributes']);
     }
 }
