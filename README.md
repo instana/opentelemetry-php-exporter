@@ -4,7 +4,7 @@ Instana exporter for OpenTelemetry.
 
 ## Documentation
 
-https://www.ibm.com/docs/en/instana-observability/current?topic=opentelemetry-php-exporter
+https://www.ibm.com/docs/en/instana-observability/current?topic=php-opentelemetry-exporter
 
 ## Installing via Composer
 
