@@ -111,7 +111,7 @@ class InstanaTransport implements TransportInterface
         }
 
         if (is_null($this->agent_uuid) || is_null($this->pid)) {
-            throw new Exception('Failed announcement in transport');
+            throw new Exception('Failed announcement in transport. Missing pid or uuid from agent');
         }
     }
 
