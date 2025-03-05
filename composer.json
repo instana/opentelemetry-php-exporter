@@ -41,7 +41,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Instana\\Test\\Util\\": "./test/util"
+            "Instana\\Test\\Util\\": "./test/Util"
         }
     },
     "extra": {
