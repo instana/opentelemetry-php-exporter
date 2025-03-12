@@ -284,6 +284,9 @@ class SpanConverterTest extends TestCase
 
     public function test_http_header_attributes(): void
     {
+        putenv("OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS=secrets");
+        putenv("OTEL_PHP_INSTRUMENTATION_HTTP_REQUESTS_HEADERS=agent");
+        
         $span = (new SpanData())
             ->setName('converter.http')
             ->setKind(OtelSpanKind::KIND_CLIENT)
@@ -291,15 +294,19 @@ class SpanConverterTest extends TestCase
             ->addAttribute('http.request.header', array('secret' => 'foo'))
             ->addAttribute('http.request.header.secrets', array('foo', 'bar'))
             ->addAttribute('http.response.status_code', 200)
-            ->addAttribute('http.response.header', array('secret' => 'fizz'))
-            ->addAttribute('http.response.header.secrets', array('fizz', 'buzz'));
+            ->addAttribute('http.response.header.secrets', array('fizz', 'buzz'))
+            ->addAttribute('http.response.header.agent', "instana")
+            ->addAttribute('http.request.header.agent', "instana");
 
         $data = $this->converter->convert([$span])[0]['data']['sdk']['custom']['tags'];
 
         $this->assertArrayHasKey('http.request.method', $data['attributes']);
         $this->assertArrayHasKey('http.response.status_code', $data['attributes']);
 
-        $this->assertArrayHasKey('http.request.header', $data['attributes']);
-        $this->assertArrayHasKey('http.response.header', $data['attributes']);
+        $this->assertArrayHasKey('http.request.header.agent', $data['attributes']);
+        $this->assertArrayHasKey('http.response.header.secrets', $data['attributes']);
+        $this->assertArrayNotHasKey('http.request.header.secrets', $data['attributes']);
+        $this->assertArrayNotHasKey('http.response.header.agent', $data['attributes']);
+        
     }
 }

@@ -132,6 +132,33 @@ class SpanConverter implements SpanConverterInterface
         if ($span->getTotalDroppedLinks() > 0) {
             self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_DROPPED_LINKS_COUNT => $span->getTotalDroppedLinks()));
         }
+        
+        if(isset($_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS']))
+        {
+            $extraHeaders = array_merge(
+                $extraHeaders ?? [], // Ensure $extraHeaders is initialized as an array
+                explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS'])
+            );
+        }
+        if(isset($_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS']))
+        {
+            $extraHeaders += array_merge(
+                $extraHeaders ?? [], 
+                explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS'])
+            );
+        }
+        
+        if (array_key_exists('attributes', $instanaSpan['data']['sdk']['custom']['tags'])) {
+                $keys = array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k)  use($extraHeaders)  {
+                    $matches = [];
+                    return preg_match('/http\.(request|response)\.header\.(.+)/', $k, $matches) &&
+                        !in_array($matches[2], $extraHeaders);
+                    }, ARRAY_FILTER_USE_KEY);
+            
+            foreach ($keys as $k => $v) {
+                unset($instanaSpan['data']['sdk']['custom']['tags']['attributes'][$k]);
+            }
+        }
 
         self::unsetEmpty($instanaSpan['data']);
 
