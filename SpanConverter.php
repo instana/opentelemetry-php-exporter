@@ -11,7 +11,7 @@ use OpenTelemetry\SDK\Resource\ResourceInfoFactory;
 use OpenTelemetry\SDK\Trace\EventInterface;
 use OpenTelemetry\SDK\Trace\SpanConverterInterface;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
-
+use OpenTelemetry\SDK\Common\Configuration\Configuration;
 use Instana\SpanKind as InstanaSpanKind;
 
 use Exception;
@@ -132,29 +132,26 @@ class SpanConverter implements SpanConverterInterface
         if ($span->getTotalDroppedLinks() > 0) {
             self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_DROPPED_LINKS_COUNT => $span->getTotalDroppedLinks()));
         }
-        
-        if(isset($_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS']))
-        {
-            $extraHeaders = array_merge(
-                $extraHeaders ?? [], // Ensure $extraHeaders is initialized as an array
-                explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS'])
-            );
-        }
-        if(isset($_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS']))
-        {
-            $extraHeaders += array_merge(
-                $extraHeaders ?? [], 
-                explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS'])
-            );
-        }
+	$extraRequestHeaders = [];
+	$extraResponseHeaders = [];
+        $extraResponseHeaders = array_merge($extraResponseHeaders, Configuration::getList('OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS', []));
+
+        $extraRequestHeaders = array_merge(
+        $extraRequestHeaders, Configuration::getList('OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS', []));
         
         if (array_key_exists('attributes', $instanaSpan['data']['sdk']['custom']['tags'])) {
-                $keys = array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k)  use($extraHeaders)  {
-                    $matches = [];
-                    return preg_match('/http\.(request|response)\.header\.(.+)/', $k, $matches) &&
-                        !in_array($matches[2], $extraHeaders);
-                    }, ARRAY_FILTER_USE_KEY);
-            
+            $keys = array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k)  use ($extraRequestHeaders) {
+                $matches = [];
+                return preg_match('/http\.(request)\.header\.(.+)/', $k, $matches) &&
+                    !in_array($matches[2], $extraRequestHeaders);
+	    }, ARRAY_FILTER_USE_KEY);
+
+	    $keys += array_filter($instanaSpan['data']['sdk']['custom']['tags']['attributes'], function ($k) use($extraResponseHeaders) {
+                $matches = [];
+                return preg_match('/http\.(response)\.header\.(.+)/', $k, $matches) &&
+                    !in_array($matches[2], $extraResponseHeaders);
+            }, ARRAY_FILTER_USE_KEY);
+
             foreach ($keys as $k => $v) {
                 unset($instanaSpan['data']['sdk']['custom']['tags']['attributes'][$k]);
             }
