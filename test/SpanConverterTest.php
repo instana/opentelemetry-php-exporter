@@ -285,7 +285,7 @@ class SpanConverterTest extends TestCase
     public function test_http_header_attributes(): void
     {
         putenv("OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS=secrets");
-        putenv("OTEL_PHP_INSTRUMENTATION_HTTP_REQUESTS_HEADERS=agent");
+        putenv("OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS=agent");
         
         $span = (new SpanData())
             ->setName('converter.http')
