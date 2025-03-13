@@ -132,16 +132,17 @@ class SpanConverter implements SpanConverterInterface
         if ($span->getTotalDroppedLinks() > 0) {
             self::setOrAppend('otel', $instanaSpan['data']['sdk']['custom']['tags'], array(self::OTEL_KEY_DROPPED_LINKS_COUNT => $span->getTotalDroppedLinks()));
         }
-
+        
+        $extraHeaders = [];
         if (isset($_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS'])) {
             $extraHeaders = array_merge(
-                $extraHeaders ?? [], // Ensure $extraHeaders is initialized as an array
+                $extraHeaders,
                 explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS'])
             );
         }
         if (isset($_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS'])) {
             $extraHeaders += array_merge(
-                $extraHeaders ?? [],
+                $extraHeaders,
                 explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS'])
             );
         }
