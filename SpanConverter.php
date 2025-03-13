@@ -136,13 +136,13 @@ class SpanConverter implements SpanConverterInterface
         if (isset($_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS'])) {
             $extraHeaders = array_merge(
                 $extraHeaders ?? [], // Ensure $extraHeaders is initialized as an array
-                explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS'])
+                explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS'])
             );
         }
         if (isset($_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS'])) {
             $extraHeaders += array_merge(
                 $extraHeaders ?? [],
-                explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS'])
+                explode(",", $_ENV['OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS'])
             );
         }
 
