@@ -63,4 +63,4 @@ $tracerProvider->shutdown();
 
 ## Contributions
 
-This repo is maintained by IBM Instana and is read-only. Issues and other contributions should be reported as part of standard Instana product support
+This repo is maintained by IBM Instana and is read-only. Issues and other contributions should be reported as part of standard [Instana product support](https://www.ibm.com/support/pages/instana-support).
