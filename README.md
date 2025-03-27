@@ -60,3 +60,7 @@ $span->end();
 
 $tracerProvider->shutdown();
 ```
+## Contributing
+
+This repository is maintained by IBM Instana and is read-only. Issues and contributions should be reported as part of standard IBM Instana product support.
+
