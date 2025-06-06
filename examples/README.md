@@ -61,6 +61,4 @@ php sdk.php
 ```
 
 
-### Distributed Tracing with Instana Headers
-To test the distributed app with Instana native header propagator, start the php services using above command under Propagation
 
