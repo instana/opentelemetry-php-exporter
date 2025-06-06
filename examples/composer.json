@@ -3,7 +3,7 @@
     "description": "An example of autoinstrumentation of wordpress with the official wordpress docker image",
     "type": "project",
     "require": {
-	"instana/opentelemetry-php-exporter": "dev-main",
+	"instana/opentelemetry-php-exporter": "0.1.0",
 	"open-telemetry/api":"1.2.0",
 	"open-telemetry/opentelemetry-propagation-instana": "0.1.0",
         "open-telemetry/opentelemetry-auto-wordpress": "0.0.15",
