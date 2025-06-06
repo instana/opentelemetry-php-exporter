@@ -34,7 +34,7 @@ services:
       - OTEL_PROPAGATORS=baggage,instana
       - OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS=traceparent,x-instana-l,x-instana-t,x-instana-s
       - OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS=traceparent,x-instana-l,x-instana-t,x-instana-s
-      - INSTANA_PHP_SDK=enabled
+      - INSTANA_PHP_SDK=disabled
 
 volumes:
   db_data:
