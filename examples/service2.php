@@ -1,13 +1,12 @@
 <?php
 
 require '../otel/autoload.php';
+use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\Context\Context;
+use Opentelemetry\Contrib\Propagation\Instana\InstanaPropagator;
 use OpenTelemetry\SDK\Registry;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
-use Opentelemetry\Contrib\Propagation\Instana\InstanaPropagator;
-use OpenTelemetry\Context\Context;
-use OpenTelemetry\API\Trace\SpanKind;
-
 
 // Create a tracer provider
 $tracerProvider = new TracerProvider(
@@ -27,11 +26,11 @@ sleep(1);
 $headers = getallheaders();  // This function gets all HTTP headers sent to the script
 
 // Print incoming request headers (for debugging)
-echo "Received Headers from file1.php:\n";
+echo "Received Headers from Service1.php:\n";
 print_r($headers);
 
 $context = InstanaPropagator::getInstance()->extract($headers);
-$span = $tracer->spanBuilder('Service2 ' )
+$span = $tracer->spanBuilder('Service2')
     ->setParent($context)
     ->setSpanKind(SpanKind::KIND_SERVER)
     ->startSpan();
@@ -45,7 +44,6 @@ $output = curl_exec($ch);
 curl_close($ch);
 
 echo "Service 2 received response from Service 3: " . $output . "\n";
-
 
 // End the span
 $span->end();
