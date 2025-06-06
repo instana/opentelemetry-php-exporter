@@ -1,0 +1,40 @@
+services:
+  db:
+    image: mariadb:10.11.7
+    command: '--default-authentication-plugin=mysql_native_password'
+    network_mode: host
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=somewordpress
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=wordpress
+
+  wordpress:
+    build:
+      context: .
+      dockerfile: autoinstrumented-wordpress.dockerfile
+    network_mode: host
+    restart: always
+    environment:
+      - WORDPRESS_DB_HOST=127.0.0.1
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=wordpress
+      - WORDPRESS_DB_NAME=wordpress
+
+      # OTel auto instrumentation config
+      # https://opentelemetry.io/docs/instrumentation/php/automatic/#installation
+      - OTEL_PHP_AUTOLOAD_ENABLED=true
+      - OTEL_SERVICE_NAME=distributed-exporter
+      - OTEL_TRACES_EXPORTER=instana
+      - OTEL_METRICS_EXPORTER=console
+      - OTEL_LOGS_EXPORTER=console
+      - OTEL_PROPAGATORS=baggage,instana
+      - OTEL_PHP_INSTRUMENTATION_HTTP_REQUEST_HEADERS=traceparent,x-instana-l,x-instana-t,x-instana-s
+      - OTEL_PHP_INSTRUMENTATION_HTTP_RESPONSE_HEADERS=traceparent,x-instana-l,x-instana-t,x-instana-s
+      - INSTANA_PHP_SDK=disabled
+
+volumes:
+  db_data:
