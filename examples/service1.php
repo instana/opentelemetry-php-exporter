@@ -1,12 +1,12 @@
 <?php
 
 require '../otel/autoload.php';
-use OpenTelemetry\SDK\Registry;
-use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
-use OpenTelemetry\SDK\Trace\TracerProvider;
-use Opentelemetry\Contrib\Propagation\Instana\InstanaPropagator;
-use OpenTelemetry\Context\Context;
 use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\Context\Context;
+use Opentelemetry\Contrib\Propagation\Instana\InstanaPropagator;
+use OpenTelemetry\SDK\Registry;
+use OpenTelemetry\SDK\Trace\TracerProvider;
+use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 
 // Create a tracer provider
 $tracerProvider = new TracerProvider(
@@ -24,7 +24,7 @@ echo "Received Headers from parent\n";
 print_r($headers);
 
 $context = InstanaPropagator::getInstance()->extract($headers);
-$Span = $tracer->spanBuilder('Service1 ' )
+$Span = $tracer->spanBuilder('Service1')
     ->setParent($context)
     ->setSpanKind(SpanKind::KIND_SERVER)
     ->startSpan();
