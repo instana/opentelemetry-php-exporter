@@ -34,14 +34,14 @@ If you want to use the REST API, make sure that the following settings are appli
 
 
 ## Distributed Tracing test app 
-This is an example of  manual context propgation between services. Auto-instrumentation will only automatically propagate context for an incoming request if you are using a framework that we provide auto-instrumentation for (symfony, laravel, etc). Otherwise, you need to do it yourself. Since we are using curl , we need to manually propagte the context.
+This is an example of manual context propagation between services. Auto-instrumentation will only automatically propagate context for an incoming request if you are using a framework that we provide auto-instrumentation for (symfony, laravel, etc). Otherwise, you need to do it yourself. Since we are using curl, we need to manually propagate the context.
 
-There are three php files which constitures a distributed app Service1.php Service2.php and Service3.php. 
-The requests goes from service1 to service2 and from service2 to service3 and extract traceparent/context headers propagated from root span(sdk.php) to child spans (service1.php , service2.php)
+There are three php files which constitute a distributed app service1.php, service2.php and service3.php. 
+The requests go from service1 to service2 and from service2 to service3 and extract traceparent/context headers propagated from root span(sdk.php) to child spans (service1.php, service2.php)
 
 **To run distributed app:**
 
-Exec in to the container and Start the service1, service2 and service 3 as below:
+Exec in to the container and start the service1, service2 and service 3 as below:
 
 ```sh
 php -S 0.0.0.0:8004 service1.php &
@@ -58,7 +58,7 @@ OR
 
 ```sh
 php sdk.php
-``` sh
+```
 
 
 ### Distributed Tracing with Instana Headers
