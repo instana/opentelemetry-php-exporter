@@ -9,15 +9,10 @@ use OpenTelemetry\Context\Context;
 use OpenTelemetry\SDK\Sdk;
 
 // Get a tracer
-$tracerProvider = new TracerProvider(
-    new SimpleSpanProcessor(
-        Registry::spanExporterFactory("instana")->create())
-);
-
-$tracer = $tracerProvider->getTracer('Root span');
+$tracer = \OpenTelemetry\API\Globals::tracerProvider()->getTracer('Root span');
 
 // Start a Root span  
-$rootspan = $tracer->spanBuilder('Root Span')->startSpan();
+$rootspan = $tracer->spanBuilder('Root Span')->setSpanKind(SpanKind::KIND_SERVER)->startSpan();
 $scope=$rootspan->activate();
 
 $ch = curl_init();
