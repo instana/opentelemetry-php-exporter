@@ -8,14 +8,8 @@ use OpenTelemetry\SDK\Registry;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 
-// Create a tracer provider
-$tracerProvider = new TracerProvider(
-    new SimpleSpanProcessor(
-        Registry::spanExporterFactory("instana")->create())
-);
-
 // Get a tracer
-$tracer = $tracerProvider->getTracer('service1-tracer');
+$tracer = \OpenTelemetry\API\Globals::tracerProvider()->getTracer('service1-tracer');
 
 $headers = getallheaders();  // This function gets all HTTP headers sent to the script
 

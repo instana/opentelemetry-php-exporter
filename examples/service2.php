@@ -8,14 +8,8 @@ use OpenTelemetry\SDK\Registry;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 
-// Create a tracer provider
-$tracerProvider = new TracerProvider(
-    new SimpleSpanProcessor(
-        Registry::spanExporterFactory("instana")->create())
-);
-
 // Get a tracer
-$tracer = $tracerProvider->getTracer('service2-tracer');
+$tracer = \OpenTelemetry\API\Globals::tracerProvider()->getTracer('service2-tracer');
 
 // Start a span for Service 2
 $span = $tracer->spanBuilder('service2-request')->startSpan();
