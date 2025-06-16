@@ -167,12 +167,15 @@ class InstanaTransport implements TransportInterface
         $this->agent_uuid = $content['agentUuid'];
 
         // Optional values that we may receive from the agent.
-        if (array_key_exists('secrets', $content)) $this->secrets = $content['secrets'];
-        if (array_key_exists('tracing', $content)) $this->tracing = $content['tracing'];
+        if (array_key_exists('secrets', $content))
+            $this->secrets = $content['secrets'];
+        if (array_key_exists('tracing', $content))
+            $this->tracing = $content['tracing'];
 
         // Phase 3) Wait for the agent ready signal.
         for ($retry = 0; $retry < 5; $retry++) {
-            if ($retry) self::logDebug("Agent not yet ready, attempt " . $retry);
+            if ($retry)
+                self::logDebug("Agent not yet ready, attempt " . $retry);
 
             $response = $this->client->sendRequest(
                 new Request(
@@ -196,17 +199,69 @@ class InstanaTransport implements TransportInterface
         return false;
     }
 
+    private function isParentProcessRequired(int $parent_pid): bool
+    {
+        $cmdline_args = $this->getCmdlineArgs($parent_pid);
+        $executable = $cmdline_args[0];
+        if (strncasecmp(PHP_OS, "win", 3) == 0) {
+            return str_contains($executable, "w3wp.exe") || str_contains($executable, "httpd.exe") || 
+                str_contains($executable, "httpd2.exe") || str_contains($executable, "apache2.exe") || 
+                str_contains($executable, "apache24.exe");
+        } else {
+            return str_ends_with($executable, "httpd") || str_ends_with($executable, "httpd2") || 
+            str_ends_with($executable, "httpd_64") || str_ends_with($executable, "apache2") || 
+            str_ends_with($executable, "apache24") || str_ends_with($executable, "apachectl_64");
+        }
+    }
+
+    private function getAnnouncementPid(): int
+    {
+        $sapi = php_sapi_name();
+        if ($sapi != 'cgi' && $sapi != 'cgi-fcgi' && $sapi != 'apache2handler') {
+            return getmypid();
+        }
+
+        $php_pid = getmypid();
+        if (strncasecmp(PHP_OS, "win", 3) == 0) {
+            $command = sprintf("powershell -Command \"Get-CimInstance -Class Win32_Process -Filter 'ProcessId = %s' | Select-Object -Expand ParentProcessId\"", 
+            escapeshellarg(strval($php_pid)));
+            $parent_pid = shell_exec(escapeshellcmd($command));
+            $parent_pid = intval($parent_pid);
+            return $this->isParentProcessRequired($parent_pid) ? $parent_pid : $php_pid;
+        } else {
+            if ($sapi == 'apache2handler' && !PHP_ZTS) {
+                return $php_pid;
+            }
+            $parent_pid = posix_getppid();
+            return $this->isParentProcessRequired($parent_pid) ? $parent_pid : $php_pid;
+        }
+    }
+
+    private function getCmdlineArgs(int $pid): array
+    {
+        if (strncasecmp(PHP_OS, "win", 3) == 0) {
+            $command = sprintf("powershell -Command \"Get-CimInstance -Class Win32_Process -Filter 'ProcessId = %s' | Select-Object -Expand CommandLine\"", escapeshellarg(strval($pid)));            
+            return explode(
+                " ", 
+                shell_exec(escapeshellcmd($command))
+            );
+        } else {
+            return explode("\0", file_get_contents("/proc/{$pid}/cmdline"));
+        }
+    }
+
     private function getAnnouncementPayload(): string
     {
-        $cmdline_args = file_get_contents("/proc/self/cmdline");
-        $cmdline_args = explode("\0", $cmdline_args);
+        $announcement_pid = $this->getAnnouncementPid();
+        $cmdline_args = $this->getCmdlineArgs($announcement_pid);
+        $executable = $cmdline_args[0];
         $cmdline_args = array_slice($cmdline_args, 1, count($cmdline_args) - 2);
 
         return json_encode(array(
-            "pid" => getmypid(),
+            "pid" => $announcement_pid,
             "pidFromParentNS" => false,
-            "pidNamespace" => readlink("/proc/self/ns/pid"),
-            "name" => readlink("/proc/self/exe"),
+            "pidNamespace" => (strncasecmp(PHP_OS, "win", 3) == 0) ? null : readlink("/proc/self/ns/pid"),
+            "name" => (strncasecmp(PHP_OS, "win", 3) == 0) ? str_replace("\"", "", $executable) : $executable,
             "args" => $cmdline_args,
             "cpuSetFileContent" => "/",
             "fd" => null,
