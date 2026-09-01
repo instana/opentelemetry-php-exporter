@@ -2,6 +2,9 @@
 
 Instana exporter for OpenTelemetry.
 
+> [!WARNING]
+> This repository is no longer maintained. It has been moved to https://github.com/opentelemetry-php/contrib-exporter-instana.
+
 ## Documentation
 
 https://www.ibm.com/docs/en/instana-observability/current?topic=php-opentelemetry-exporter
